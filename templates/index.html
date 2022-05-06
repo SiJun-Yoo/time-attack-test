@@ -51,9 +51,9 @@
             border-radius: 5px;
         }
     </style>
-
-		<!-- script-->
     <script>
+        let order = "asc";
+
         $(document).ready(function () {
             showArticles();
         });
@@ -72,43 +72,95 @@
                 $("#btn-post-box").text("포스팅 박스 닫기");
             }
         }
-
-        function postArticle() {
-            let title = $('#post-url').val()
-            let pw = $('#post-pw').val()
-            let comment = $('#post-comment').val()
-
+        function plusCount(id){
             $.ajax({
-                type: "POST",
-                url: `/post`,
-                data: {
-                    'title':title,
-                    'pw':pw,
-                    'comment':comment
-                },
+                type: "PUT",
+                url: "/article/count/"+id,
+                data: {},
                 success: function (response) {
                     showArticles();
                 }
-            });
+            })
+        }
+        function postArticle() {
+            let title = $("#post-title").val();
+            let content = $("#post-content").val();
+            let pw = $("#post-pw").val();
+
+            $.ajax({
+                type: "POST",
+                url: "/article",
+                data: {title: title, content: content, pw: pw},
+                success: function (response) {
+                    if (response["result"] == "success") {
+                        alert("포스팅 성공!");
+                        window.location.reload();
+                    } else {
+                        alert("서버 오류!");
+                    }
+                }
+            })
         }
 
         function showArticles() {
-
-            makeListPost(a, b);
+            $.ajax({
+                type: "GET",
+                url: `/article?order=${order}`,
+                data: {},
+                success: function (response) {
+                    $("#list-post").empty();
+                    let articles = response["articles"];
+                    for (let i = 1; i <= articles.length; i++) {
+                        makeListPost(articles[i-1], i);
+                    }
+                }
+            })
         }
 
-        function makeListPost(post, index) {
-            let tempHtml = `<tr>
-                  <td>${idx}</td>
-                  <td">${title}</td>
-                  <td>${date}</td>
-                  <td><a href="/detail/${idx}">삭제</a></td>
-                </tr>`;
-            $("#list-post").append(tempHtml);
+        function readArticle(idx) {
+            $.ajax({
+                type: "GET",
+                url: `/article?idx=${idx}`,
+                data: {},
+                success: function (response) {
+                    let title = response['article']['title']
+                    let content = response['article']['content']
+                    $('#modal-title').html(title);
+                    $('#modal-content').html(content);
+                    $('#articleModal').modal('show');
+                    showArticles();
+                }
+            })
+        }
+
+        function makeListPost(article, index) {
+            tmpHTML = `<tr>
+                  <td>${index}</td>
+                  <td onclick='plusCount(${article.id})'>${article.title}</td>
+                  <td>${article.count}</td>
+                  <td>${article.create_date}</td>
+                  <td onclick="detailArticle(${article.id})">${article.content}</td>
+                </tr>`
+            $('#list-post').append(tmpHTML);
         }
 
         function detailArticle(idx) {
-            // todo
+            window.location.href = `/detail/${idx}`
+        }
+
+        function setOrder() {
+            if (order == "asc") {
+                order = "desc";
+                $("#viewOrder").html(`<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-arrow-up-square-fill" viewBox="0 0 16 16">
+  <path d="M2 16a2 2 0 0 1-2-2V2a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H2zm6.5-4.5V5.707l2.146 2.147a.5.5 0 0 0 .708-.708l-3-3a.5.5 0 0 0-.708 0l-3 3a.5.5 0 1 0 .708.708L7.5 5.707V11.5a.5.5 0 0 0 1 0z"/>
+</svg>`)
+            } else {
+                order = "asc";
+                $("#viewOrder").html(`<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-arrow-down-square-fill" viewBox="0 0 16 16">
+  <path d="M2 0a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V2a2 2 0 0 0-2-2H2zm6.5 4.5v5.793l2.146-2.147a.5.5 0 0 1 .708.708l-3 3a.5.5 0 0 1-.708 0l-3-3a.5.5 0 1 1 .708-.708L7.5 10.293V4.5a.5.5 0 0 1 1 0z"/>
+</svg>`)
+            }
+            showArticles();
         }
     </script>
 
@@ -127,16 +179,16 @@
     <div id="post-box" class="form-post" style="display:none">
         <div>
             <div class="form-group">
-                <label for="post-url">제목</label>
-                <input id="post-url" class="form-control" placeholder="">
+                <label for="post-title">제목</label>
+                <input id="post-title" class="form-control" placeholder="">
             </div>
              <div class="form-group">
                 <label for="post-pw">비밀번호</label>
                 <input type="password" id="post-pw" class="form-control" placeholder="">
             </div>
             <div class="form-group">
-                <label for="post-comment">간단한 내용</label>
-                <textarea id="post-comment" class="form-control" rows="2"></textarea>
+                <label for="post-content">간단한 내용</label>
+                <textarea id="post-content" class="form-control" rows="2"></textarea>
             </div>
             <button type="button" class="btn btn-primary" onclick="postArticle()">기사저장</button>
         </div>
@@ -146,14 +198,39 @@
                 <tr>
                   <th scope="col">#</th>
                   <th scope="col">타이틀</th>
+                  <th scope="col">조회수<span onclick="setOrder()" id="viewOrder">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor"
+                           class="bi bi-arrow-down-square-fill" viewBox="0 0 16 16">
+  <path d="M2 0a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V2a2 2 0 0 0-2-2H2zm6.5 4.5v5.793l2.146-2.147a.5.5 0 0 1 .708.708l-3 3a.5.5 0 0 1-.708 0l-3-3a.5.5 0 1 1 .708-.708L7.5 10.293V4.5a.5.5 0 0 1 1 0z"/>
+</svg>
+                  </span></th>
                   <th scope="col">날짜</th>
-                  <th scope="col">삭제</th>
+                  <th scope="col">상세보기</th>
                 </tr>
               </thead>
               <tbody id="list-post">
 
               </tbody>
     </table>
+</div>
+<!-- Modal -->
+<div class="modal fade" id="articleModal" tabindex="-1" role="dialog" aria-labelledby="articleModalLabel"
+     aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="modal-title"></h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body" id="modal-content">
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
 </div>
 </body>
 
