@@ -8,7 +8,7 @@ import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
 
 @RequiredArgsConstructor
-@Controller
+@RestController
 public class UserController {
     private final UserService userService;
 
