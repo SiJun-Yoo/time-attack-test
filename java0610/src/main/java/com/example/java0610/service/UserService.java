@@ -53,7 +53,7 @@ public class UserService {
         UserRecommendResponse response = new UserRecommendResponse();
         List<UserRecommendDto> userList = response.getResult();
         for(User nowUser : recommendUser){
-            userList.add(UserRecommendDto.from(user));
+            userList.add(UserRecommendDto.from(nowUser));
         }
         return response;
     }
